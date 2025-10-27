@@ -1,3 +1,9 @@
+## 1.0.0 (2025-10-27)
+
+### Documentation
+
+* **standards:** add complete API design standards covering 30 best practices for backend systems ([b8b3172](https://github.com/fouadkhalied/fishFarmSystem/commit/b8b317299448824b19a00903643150f8520215cb))
+
 ## [1.3.0](https://github.com/andrea-acampora/nestjs-ddd-devops/compare/1.2.0...1.3.0) (2025-03-27)
 
 ### Features
