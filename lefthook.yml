@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - run: npm run lint
+      glob: "*"
+    - run: npm run test
+      glob: "*"
+commit-msg:
+  scripts:
+    "commitlint.sh":
+      runner: bash

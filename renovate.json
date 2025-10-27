@@ -1,0 +1,52 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":rebaseStalePrs",
+        ":semanticCommits",
+        ":semanticCommitTypeAll(chore)"
+    ],
+    "packageRules": [
+        {
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "automerge": true
+        },
+        {
+            "matchDepTypes": [
+                "dependencies",
+                "devDependencies"
+            ],
+            "automerge": true
+        }
+    ],
+    "baseBranches": ["develop"],
+    "dependencyDashboard": true,
+    "automerge": true,
+    "automergeType": "pr",
+    "prCreation": "immediate",
+    "rebaseWhen": "auto",
+    "platformAutomerge": true,
+    "assignees": [
+        "andrea-acampora"
+    ],
+    "reviewers": [
+        "andrea-acampora"
+    ],
+    "includeForks": true,
+    "labels": [
+        "dependencies"
+    ],
+    "git-submodules": {
+        "enabled": true
+    },
+    "prConcurrentLimit": 25,
+    "prHourlyLimit": 0,
+    "separateMajorMinor": true,
+    "separateMinorPatch": true,
+    "separateMultipleMajor": true
+}
