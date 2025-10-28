@@ -890,7 +890,3 @@ auth_login_total{status="locked"} 3
 auth_otp_delivery_total{method="sms",status="success"} 1400
 auth_otp_delivery_total{method="sms",status="failed"} 23
 auth_otp_delivery_total{method="email",status="success"} 98
-
-# HELP background_job_duration_seconds Background job processing time
-# TYPE background_job_duration_seconds histogram
-background_job_duration_seconds{job="geolocation",status="completed
