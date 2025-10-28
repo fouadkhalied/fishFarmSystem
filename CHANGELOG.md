@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/fouadkhalied/fishFarmSystem/compare/1.0.0...1.0.1) (2025-10-28)
+
+### Documentation
+
+* **auth:** added auth module documentation still not completed ([4c349e7](https://github.com/fouadkhalied/fishFarmSystem/commit/4c349e71a550f5069c9880fced4a81e402285660))
+* **auth:** added auth module documentation still not completed ([36fc575](https://github.com/fouadkhalied/fishFarmSystem/commit/36fc57569a3297e7785d6361ba4c0ff23dcb0470))
+
 ## 1.0.0 (2025-10-27)
 
 ### Documentation
