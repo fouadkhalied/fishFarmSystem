@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/fouadkhalied/fishFarmSystem/compare/1.0.3...1.0.4) (2025-11-16)
+
+### Documentation
+
+* **auth:** add comprehensive 2FA system documentation ([eaa7f66](https://github.com/fouadkhalied/fishFarmSystem/commit/eaa7f6641a4ba050fb92bc5bc3ea689e5237a43e))
+
 ## [1.0.3](https://github.com/fouadkhalied/fishFarmSystem/compare/1.0.2...1.0.3) (2025-11-15)
 
 ### Documentation
