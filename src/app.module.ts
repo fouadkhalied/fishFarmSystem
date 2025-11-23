@@ -12,8 +12,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CommunicationModule } from './modules/communication/communication.module';
-import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+
 
 @Module({
   imports: [
@@ -35,10 +34,6 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
           allowGlobalContext: true,
         };
       },
-    }),
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      autoSchemaFile: true,
     }),
     ThrottlerModule.forRoot([
       {
