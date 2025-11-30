@@ -1,16 +1,27 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class LoginBody {
-  @IsNotEmpty()
+  @ValidateIf(o => !o.phoneNumber)
+  @IsNotEmpty({ message: 'Email is required when phone number is not provided' })
   @IsEmail()
   @IsString()
-  email!: string;
+  @IsOptional()
+  email?: string;
+
+  @ValidateIf(o => !o.email)
+  @IsNotEmpty({ message: 'Phone number is required when email is not provided' })
+  @IsString()
+  @MaxLength(20)
+  @IsOptional()
+  phoneNumber?: string;
 
   @IsNotEmpty()
   @IsString()

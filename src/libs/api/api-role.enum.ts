@@ -1,4 +1,6 @@
 export enum ApiRole {
-  ADMIN = 0,
-  USER = 1,
+  MANAGER = 0,
+  ADMIN = 1,
+  TECNICAN = 2,
+  ACCOUNTANT = 3,
 }

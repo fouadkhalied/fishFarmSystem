@@ -18,6 +18,12 @@ export class UserEntity extends BaseEntity {
   password!: string;
 
   @Property({ nullable: true })
+  phoneNumber!: string | null; 
+  
+  @Property()
+  twoFactorEnabled!: boolean;
+
+  @Property({ nullable: true })
   firstName?: string;
 
   @Property({ nullable: true })

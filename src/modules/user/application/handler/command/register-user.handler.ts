@@ -7,6 +7,7 @@ import { UserState } from '../../../domain/value-object/user-state.enum';
 import { CreateUserUseCase } from '../../use-case/create-user.use-case';
 import { UserRole } from '../../../domain/value-object/user-role.enum';
 import { User } from '../../../domain/entity/user.entity';
+import { Password } from '../../../domain/value-object/password.value-object';
 
 @CommandHandler(RegisterUserCommand)
 export class RegisterUserHandler
@@ -17,11 +18,14 @@ export class RegisterUserHandler
     private readonly createUserUseCase: CreateUserUseCase,
   ) {}
   async execute(command: RegisterUserCommand): Promise<Option<User>> {
+    const password = await Password.fromPlainText(command.password);
     return await this.createUserUseCase.execute({
       firstName: command.firstName,
       lastName: command.lastName,
-      password: command.password,
+      password,
       email: command.email,
+      phoneNumber: null,
+      twoFactorEnabled: false,
       role: UserRole.USER,
       state: UserState.ACTIVE,
     });

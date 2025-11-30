@@ -12,6 +12,7 @@ import { GetAllUsersHandler } from './application/handler/query/get-all-users.ha
 import { UserMapper } from './infrastructure/database/mapper/user.mapper';
 import { GetUserByIdHandler } from './application/handler/query/get-user-by-id.handler';
 import { UserEntity } from './infrastructure/database/entity/user.entity';
+import { UserCache } from './infrastructure/cache/user.cache';
 
 @Module({
   imports: [MikroOrmModule.forFeature([UserEntity])],
@@ -24,6 +25,7 @@ import { UserEntity } from './infrastructure/database/entity/user.entity';
     GetUserByIdHandler,
     CheckAuthUserByIdHandler,
     UserMapper,
+    UserCache,
     {
       provide: USER_REPOSITORY,
       useClass: UserRepositoryImpl,
@@ -33,6 +35,6 @@ import { UserEntity } from './infrastructure/database/entity/user.entity';
       useClass: CreateUserUseCase,
     },
   ],
-  exports: [],
+  exports: [USER_REPOSITORY],
 })
 export class UserModule {}

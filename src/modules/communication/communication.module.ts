@@ -13,6 +13,6 @@ import { EmailServiceImpl } from './infrastructure/email/email.service';
       useClass: EmailServiceImpl,
     },
   ],
-  exports: [],
+  exports: [EMAIL_SERVICE],
 })
 export class CommunicationModule {}

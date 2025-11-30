@@ -7,13 +7,15 @@ export class CreateAdminCredentialsMigration extends Migration {
     await this.getEntityManager()
       .getConnection()
       .execute(
-        `INSERT INTO users (id, email, password, first_name, last_name, role, state, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `INSERT INTO users (id, email, password, phone_number, two_factor_enabled, first_name, last_name, role, state, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON CONFLICT (email) DO NOTHING`,
         [
           v4(),
-          'admin@email.com',
-          await hash('Test1234!', await genSalt()),
+          'foukha49@gmail.com',
+          await hash('12345!Aa', await genSalt()),
+          '01558525293',
+          true,
           'Admin',
           'Admin',
           0,
