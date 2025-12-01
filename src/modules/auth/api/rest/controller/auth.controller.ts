@@ -16,6 +16,7 @@ import { isNone, getOrThrowWith } from 'effect/Option';
 
 interface AuthSession {
   userId: string;
+  recipient: ContactMethod;
   deliveryMethod: 'EMAIL' | 'SMS';
   expiresAt: number;
 }
@@ -36,6 +37,7 @@ import { Enable2FAUseCase } from '../../../application/use-case/enable-2fa.use-c
 import { RequestPasswordResetBody } from '../presentation/body/request-password-reset.body';
 import { ResetPasswordBody } from '../presentation/body/reset-password.body';
 import { PasswordResetResponseDto } from '../presentation/dto/password-reset-response.dto';
+import { ContactMethod } from 'src/modules/user/domain/value-object/contactInfo/contact-method.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -78,15 +80,13 @@ export class AuthController {
           throw new UnauthorizedException('User not found.');
         }
 
-        const user = userOption.value;
         await this.requestOTPUseCase.execute({
-          email: sessionData.deliveryMethod === 'EMAIL' ? user.email : undefined,
-          phoneNumber: sessionData.deliveryMethod === 'SMS' ? user.phoneNumber : undefined,
+          recipient: sessionData.recipient,
           deliveryMethod: sessionData.deliveryMethod,
           isResend: false,
         });
       } catch (otpError) {
-        throw new UnauthorizedException('Failed to send OTP. Please try again.');
+        throw new UnauthorizedException(otpError);
       }
 
       return {

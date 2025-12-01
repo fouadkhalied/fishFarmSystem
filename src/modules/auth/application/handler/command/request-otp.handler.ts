@@ -11,8 +11,7 @@ export class RequestOTPHandler
 
   async execute(command: RequestOTPCommand): Promise<Option<boolean>> {
     return this.requestOTPUseCase.execute({
-      email: command.email,
-      phoneNumber: undefined,
+      recipient: command.recipient,
       password: command.password,
       deliveryMethod: command.deliveryMethod,
       isResend: command.isResend,

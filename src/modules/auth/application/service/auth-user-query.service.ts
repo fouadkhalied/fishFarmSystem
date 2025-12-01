@@ -3,6 +3,7 @@ import { Option } from 'effect/Option';
 import { User } from '../../../user/domain/entity/user.entity';
 import { UserRepository } from '../../../user/domain/repository/user.repository.interface';
 import { USER_REPOSITORY } from '../../../user/user.tokens';
+import { ContactMethod } from 'src/modules/user/domain/value-object/contactInfo/contact-method.interface';
 
 export interface GetUserByEmailOrPhoneInput {
   email?: string;
@@ -16,13 +17,13 @@ export class AuthUserQueryService {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async getUserByEmailOrPhone(
-    input: GetUserByEmailOrPhoneInput,
+  async findUserByContactMethod(
+    input: ContactMethod,
   ): Promise<Option<User>> {
-    if (input.email) {
-      return await this.userRepository.getUserByEmail(input.email);
-    } else if (input.phoneNumber) {
-      return await this.userRepository.getUserByPhoneNumber(input.phoneNumber);
+    if (input.type === 'EMAIL') {
+      return await this.userRepository.getUserByEmail(input.value);
+    } else if (input.type === 'SMS') {
+      return await this.userRepository.getUserByPhoneNumber(input.value);
     }
 
     // This should not happen if validation is done before calling this method

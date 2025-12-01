@@ -8,6 +8,7 @@ import { PasswordResetRequestedEvent } from '../../domain/event/password-reset-r
 import { PasswordResetCache } from '../../infrastructure/cache/password-reset.cache';
 import { AuthUserQueryService } from '../service/auth-user-query.service';
 import { randomBytes } from 'crypto';
+import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
 export interface RequestPasswordResetInput {
   email?: string;
@@ -32,10 +33,10 @@ export class RequestPasswordResetUseCase
       );
     }
 
-    const userOption = await this.authUserQueryService.getUserByEmailOrPhone({
-      email: input.email,
-      phoneNumber: input.phoneNumber,
-    });
+    const contactMethod = ContactMethodFactory.fromLoginBody(input);
+
+    // 2. Fetch user by email or phone number
+    const userOption = await this.authUserQueryService.findUserByContactMethod(contactMethod);
 
     // Check user exists
     if (isNone(userOption)) {

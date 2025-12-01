@@ -21,6 +21,7 @@ import {
   import { JWT_AUTH_SERVICE } from '../../../auth.tokens';
   import { RequestOTPUseCase } from '../../../application/use-case/request-otp.use-case';
   import { VerifyOTPUseCase } from '../../../application/use-case/verify-otp.use-case';
+import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
   @Controller('2FA')
   export class TwoFactorController {
@@ -35,8 +36,11 @@ import {
     @Post('request')
     @HttpCode(HttpStatus.OK)
     async requestOTP(@Body() body: RequestOTPBody): Promise<OTPResponseDto> {
+
+      const contactMethod = ContactMethodFactory.fromLoginBody(body);
+
       const result = await this.requestOTPUseCase.execute({
-        email: body.email,
+        recipient: contactMethod,
         password: body.password,
         deliveryMethod: body.deliveryMethod || 'EMAIL',
         isResend: false,
@@ -89,8 +93,10 @@ import {
     @Post('resend')
     @HttpCode(HttpStatus.OK)
     async resendOTP(@Body() body: ResendOTPBody): Promise<OTPResponseDto> {
+      const contactMethod = ContactMethodFactory.fromLoginBody(body);
+
       const result = await this.requestOTPUseCase.execute({
-        email: body.email,
+        recipient: contactMethod,
         password: '', // Password already validated in original request
         deliveryMethod: body.deliveryMethod || 'EMAIL',
         isResend: true,

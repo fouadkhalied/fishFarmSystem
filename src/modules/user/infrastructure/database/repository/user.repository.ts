@@ -69,6 +69,7 @@ export class UserRepositoryImpl implements UserRepository {
   async getUserById(id: string): Promise<Option<User>> {
     // Try cache first
     const cachedUser = await this.userCache.getUserById(id);
+
     if (isSome(cachedUser)) {
       return cachedUser;
     }
@@ -140,7 +141,7 @@ export class UserRepositoryImpl implements UserRepository {
     const domainUser = this.mapper.toDomain(entity);
 
     // Invalidate cache since user state changed
-    await this.userCache.invalidateUser(userId, domainUser.email, domainUser.phoneNumber || undefined);
+    await this.userCache.invalidateUser(userId, domainUser.props.email, domainUser.props.phoneNumber || undefined);
 
     return some(domainUser);
   }
@@ -168,7 +169,7 @@ export class UserRepositoryImpl implements UserRepository {
     const domainUser = this.mapper.toDomain(entity);
 
     // Invalidate cache for security - user may need to re-authenticate
-    await this.userCache.invalidateUser(userId, domainUser.email, domainUser.phoneNumber || undefined);
+    await this.userCache.invalidateUser(userId, domainUser.props.email, domainUser.props.phoneNumber || undefined);
 
     return some(domainUser);
   }

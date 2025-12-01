@@ -14,6 +14,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AccountLockedEvent } from '../../domain/event/account-locked.event';
 import { UserRepository } from '../../../user/domain/repository/user.repository.interface';
 import { USER_REPOSITORY } from '../../../user/user.tokens';
+import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
 @Injectable()
 export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
@@ -35,11 +36,13 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
       throw new BadRequestException('Either email or phone number must be provided');
     }
 
+    const contactMethod = ContactMethodFactory.fromLoginBody(body);
+
     // 2. Fetch user by email or phone number
-    const user = await this.authUserQueryService.getUserByEmailOrPhone({
-      email: body.email,
-      phoneNumber: body.phoneNumber,
-    });
+    const user = await this.authUserQueryService.findUserByContactMethod(contactMethod);
+
+    console.log(contactMethod.value);
+    
 
     if (isNone(user)) {
       throw new UnauthorizedException(
@@ -66,9 +69,6 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
       if (newCount >= WRONG_LOGIN_ATTEMPS) {
         // Record failed login (changes state to LOCKED and creates AccountLockedEvent)
         user.value.recordFailedLogin();
-
-        
-        
         
         // Save user to database (account now locked)
         await this.userRepository.lock(user.value.id);
@@ -103,14 +103,15 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
       // Store session temporarily 
       await this.cacheManager.set(`auth_session:${sessionToken}`, {
         userId: user.value.id,
-        deliveryMethod: body.email ? 'EMAIL' : 'SMS',
+        deliveryMethod: contactMethod.type,
+        recipient: contactMethod,
         expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
       }, 300); // 5 minutes TTL
 
       return fromNullable({
         requiresOTP: true,
         sessionToken,
-        message: `OTP sent to your ${body.email ? 'email' : 'phone'}. Please verify to continue.`,
+        message: `OTP sent to your ${contactMethod.type}. Please verify to continue.`,
       });
     }
 

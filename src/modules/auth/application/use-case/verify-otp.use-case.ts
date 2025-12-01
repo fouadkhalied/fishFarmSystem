@@ -7,6 +7,7 @@ import { OTP_REPOSITORY } from '../../auth.tokens';
 import { OTPRepository } from '../../domain/repository/otp.repository.interface';
 import { AuthUser } from '../../api/rest/presentation/dto/auth-user.dto';
 import { AuthUserQueryService } from '../service/auth-user-query.service';
+import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
 export interface VerifyOTPInput {
   email: string;
@@ -23,11 +24,12 @@ export class VerifyOTPUseCase implements UseCase<VerifyOTPInput, Option<AuthUser
   ) {}
 
   async execute(input: VerifyOTPInput): Promise<Option<AuthUser>> {
+
     // 1. Load user from database
-    const userOption: Option<User> = await this.authUserQueryService.getUserByEmailOrPhone({
-      email: input.email,
-      phoneNumber: input.phoneNumber
-    });
+    const contactMethod = ContactMethodFactory.fromLoginBody(input);
+
+    // 2. Fetch user by email or phone number
+    const userOption: Option<User> = await this.authUserQueryService.findUserByContactMethod(contactMethod);
 
     // 2. Check user exists
     if (isNone(userOption)) {

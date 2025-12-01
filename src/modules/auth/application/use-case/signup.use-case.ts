@@ -12,6 +12,7 @@ import { Password } from '../../../user/domain/value-object/password.value-objec
 import { UserRole } from '../../../user/domain/value-object/user-role.enum';
 import { UserState } from '../../../user/domain/value-object/user-state.enum';
 import { EventPublisher } from '@nestjs/cqrs';
+import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
 @Injectable()
 export class SignupUseCase implements UseCase<SignupBody, Option<AuthUser>> {
@@ -24,10 +25,10 @@ export class SignupUseCase implements UseCase<SignupBody, Option<AuthUser>> {
 
   async execute(body: SignupBody): Promise<Option<AuthUser>> {
     // 1. Check if user already exists
-    const found = await this.authUserQueryService.getUserByEmailOrPhone({
-      email: body.email,
-      phoneNumber: body.phoneNumber,
-    });
+    const contactMethod = ContactMethodFactory.fromLoginBody(body);
+
+    // 2. Fetch user by email or phone number
+    const found = await this.authUserQueryService.findUserByContactMethod(contactMethod);
     
     if (isSome(found)) {
       throw new CustomConflictException(found.value.props.email);

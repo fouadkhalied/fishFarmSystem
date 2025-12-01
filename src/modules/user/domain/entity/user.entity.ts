@@ -28,42 +28,6 @@ export class User extends AggregateRoot {
     this.props = props;
   }
 
-  get email(): string {
-    return this.props.email;
-  }
-
-  get phoneNumber(): string | null {
-    return this.props.phoneNumber;
-  }
-
-  get firstName(): string | null {
-    return this.props.firstName || null;
-  }
-
-  get lastName(): string | null {
-    return this.props.lastName || null;
-  }
-
-  get role(): UserRole {
-    return this.props.role;
-  }
-
-  get state(): UserState {
-    return this.props.state;
-  }
-
-  get twoFactorEnabled(): boolean {
-    return this.props.twoFactorEnabled;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt || new Date();
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt || new Date();
-  }
-
   create() {
     this.apply(new CreatedUserEvent(this));
   }

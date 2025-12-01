@@ -12,10 +12,10 @@ import { OTP_REPOSITORY } from '../../auth.tokens';
 import { OTPCode } from '../../domain/value-object/otp-code.value-object';
 import { OTPRequestedEvent } from '../../domain/event/otp-requested.event';
 import { AuthUserQueryService } from '../service/auth-user-query.service';
+import { ContactMethod } from 'src/modules/user/domain/value-object/contactInfo/contact-method.interface';
 
 export interface RequestOTPInput {
-  email?: string;
-  phoneNumber?: string;
+  recipient: ContactMethod;
   password?: string;
   deliveryMethod: string;
   isResend?: boolean;
@@ -33,36 +33,32 @@ export class RequestOTPUseCase
   ) {}
 
   async execute(input: RequestOTPInput): Promise<Option<boolean>> {
-    if (!input.email && !input.phoneNumber) {
+    if (!input.recipient) {
       throw new BadRequestException(
-        'Either email or phone number must be provided to request OTP',
+        'Contact method must be provided to request OTP',
       );
     }
+    
+    const user = await this.authUserQueryService.findUserByContactMethod(input.recipient);    
 
-    const userOption = await this.authUserQueryService.getUserByEmailOrPhone({
-      email: input.email,
-      phoneNumber: input.phoneNumber,
-    });
-
-    // Check user exists
-    if (isNone(userOption)) {
-      return none();
+    if (isNone(user)) {
+      throw new UnauthorizedException(
+        `User not found!`,
+      );
     }
-
-    const user = userOption.value;
 
     // Validate password for non-resend requests
     if (input.isResend) {
       
       // Check account is active
-      if (user.props.state !== UserState.ACTIVE) {
+      if (user.value.props.state !== UserState.ACTIVE) {
         throw new UnauthorizedException('Account is not active');
       }
 
       if (!input.password) {
         throw new BadRequestException('Password is required for OTP request');
       }
-      const validPassword = await user.props.password.matches(input.password);
+      const validPassword = await user.value.props.password.matches(input.password);
       if (!validPassword) {
         throw new UnauthorizedException('Invalid credentials');
       }
@@ -70,7 +66,7 @@ export class RequestOTPUseCase
 
     // Rate limit (max 3 OTP requests per hour)
     const recentRequests = await this.otpRepository.countRecentOTPRequests(
-      user.id,
+      user.value.id,
       60,
     );
     if (recentRequests >= 3) {
@@ -84,7 +80,7 @@ export class RequestOTPUseCase
 
     // Save OTP
     const otpResult = await this.otpRepository.createOTP({
-      userId: user.id,
+      userId: user.value.id,
       code: otpCode,
       deliveryMethod: input.deliveryMethod as 'EMAIL' | 'SMS' | 'PUSH',
       failedAttempts: 0,
@@ -99,10 +95,10 @@ export class RequestOTPUseCase
     this.eventEmitter.emit(
       'otp.requested',
       new OTPRequestedEvent({
-        userId: user.id,
+        userId: user.value.id,
         otpCode: otpCode.getCode(),
         deliveryMethod: input.deliveryMethod,
-        recipient: input.deliveryMethod === 'EMAIL' ? user.props.email : user.props.phoneNumber || "recipent",
+        recipient: input.recipient.value.toString(),
       }),
     );
 

@@ -1,3 +1,4 @@
+import { ContactMethod } from "src/modules/user/domain/value-object/contactInfo/contact-method.interface";
 import { AuthUser } from "./auth-user.dto";
 
 export interface LoginResponse {
@@ -5,7 +6,6 @@ export interface LoginResponse {
     user?: AuthUser;
     message?: string;
     deliveryMethod?: string;
-    userEmail?: string;
-    userPhoneNumber?: string | null;
+    recipient?: ContactMethod;
     sessionToken?: string;
   }

@@ -24,7 +24,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
       phoneNumber: command.phoneNumber,
       password: command.password
     };
-
+    
     const loginResponse: LoginResponse = getOrThrowWith(
       await this.loginUseCase.execute(body),
       () => new UnauthorizedException('Login Error!'),
@@ -32,12 +32,11 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
 
     if (loginResponse.requiresOTP) {
       // Request OTP in background (fire and forget)
-      if (loginResponse.deliveryMethod && (loginResponse.userEmail || loginResponse.userPhoneNumber)) {
+      if (loginResponse.deliveryMethod && loginResponse.recipient) {
         getOrThrowWith(
           await this.requestOTPUseCase
           .execute({
-            email: loginResponse.userEmail || undefined,
-            phoneNumber: loginResponse.userPhoneNumber || undefined,
+            recipient: loginResponse.recipient,
             deliveryMethod: loginResponse.deliveryMethod,
             isResend: false,
           }),
