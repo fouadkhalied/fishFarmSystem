@@ -7,4 +7,5 @@ export interface LoginResponse {
     deliveryMethod?: string;
     userEmail?: string;
     userPhoneNumber?: string | null;
+    sessionToken?: string;
   }

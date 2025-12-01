@@ -8,10 +8,9 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { isNone, none, Option, some } from 'effect/Option';
 import { UserState } from '../../../user/domain/value-object/user-state.enum';
-import { OTP_CACHE } from '../../auth.tokens';
+import { OTP_REPOSITORY } from '../../auth.tokens';
 import { OTPCode } from '../../domain/value-object/otp-code.value-object';
 import { OTPRequestedEvent } from '../../domain/event/otp-requested.event';
-import { OTPCache } from '../../infrastructure/cache/otp.cache';
 import { AuthUserQueryService } from '../service/auth-user-query.service';
 
 export interface RequestOTPInput {
@@ -29,8 +28,8 @@ export class RequestOTPUseCase
   constructor(
     private readonly authUserQueryService: AuthUserQueryService,
     private readonly eventEmitter: EventEmitter2,
-    @Inject(OTP_CACHE)
-    private readonly otpCache: OTPCache,
+    @Inject(OTP_REPOSITORY)
+    private readonly otpRepository: any,
   ) {}
 
   async execute(input: RequestOTPInput): Promise<Option<boolean>> {
@@ -70,7 +69,7 @@ export class RequestOTPUseCase
     }
 
     // Rate limit (max 3 OTP requests per hour)
-    const recentRequests = await this.otpCache.countRecentOTPRequests(
+    const recentRequests = await this.otpRepository.countRecentOTPRequests(
       user.id,
       60,
     );
@@ -84,7 +83,7 @@ export class RequestOTPUseCase
     const otpCode = await OTPCode.generate();
 
     // Save OTP
-    const otpResult = await this.otpCache.createOTP({
+    const otpResult = await this.otpRepository.createOTP({
       userId: user.id,
       code: otpCode,
       deliveryMethod: input.deliveryMethod as 'EMAIL' | 'SMS' | 'PUSH',

@@ -3,6 +3,9 @@ import { UseCase } from '../../../../libs/ddd/use-case.interface';
 import { LoginBody } from '../../api/rest/presentation/body/login.body';
 import { fromNullable, isNone, Option } from 'effect/Option';
 import { BadRequestException, Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { randomBytes } from 'crypto';
 import { UserState } from '../../../user/domain/value-object/user-state.enum';
 import { LoginResponse } from '../../api/rest/presentation/dto/login-response.dto';
 import { AuthUserQueryService } from '../service/auth-user-query.service';
@@ -20,6 +23,8 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   async execute(body: LoginBody): Promise<Option<LoginResponse>> {
@@ -92,15 +97,20 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
     const twoFactorEnabled = user.value.props.twoFactorEnabled ?? false;
 
     if (twoFactorEnabled) {
-      // 9. Determine delivery method based on login method
-      const deliveryMethod = body.email ? 'EMAIL' : 'SMS';
+      // 9. Create a pending auth session instead of exposing user data
+      const sessionToken = this.generateSessionToken();
+
+      // Store session temporarily 
+      await this.cacheManager.set(`auth_session:${sessionToken}`, {
+        userId: user.value.id,
+        deliveryMethod: body.email ? 'EMAIL' : 'SMS',
+        expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+      }, 300); // 5 minutes TTL
 
       return fromNullable({
         requiresOTP: true,
-        deliveryMethod,
-        userEmail: user.value.props.email,
-        userPhoneNumber: user.value.props.phoneNumber,
-        message: `OTP will be sent to your ${deliveryMethod === 'EMAIL' ? 'email' : 'phone'}. Please verify to continue.`,
+        sessionToken,
+        message: `OTP sent to your ${body.email ? 'email' : 'phone'}. Please verify to continue.`,
       });
     }
 
@@ -113,5 +123,9 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
         role: user.value.props.role,
       },
     });
+  }
+
+  private generateSessionToken(): string {
+    return randomBytes(32).toString('hex');
   }
 }

@@ -48,6 +48,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
 
       return {
         requiresOTP: true,
+        sessionToken: loginResponse.sessionToken!,
         message:
           loginResponse.message ??
           'OTP sent to your email/phone. Please verify to continue.',

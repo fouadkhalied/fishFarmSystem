@@ -16,7 +16,7 @@ export class UserMapper implements Mapper<User, UserEntity> {
       lastName: record.lastName,
       phoneNumber: record.phoneNumber || null,
       twoFactorEnabled: record.twoFactorEnabled ?? false,
-      role: record.role ?? UserRole.USER,
+      role: record.role ?? UserRole.MANAGER,
       state: record.state ?? UserState.ACTIVE,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

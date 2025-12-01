@@ -6,9 +6,6 @@ import { AuthGuard } from './api/guard/auth.guard';
 import { AuthController } from './api/rest/controller/auth.controller';
 import {
   JWT_AUTH_SERVICE,
-  LOGIN_USE_CASE,
-  SIGNUP_USE_CASE,
-  OTP_CACHE,
   OTP_REPOSITORY,
   PASSWORD_RESET_CACHE,
 } from './auth.tokens';
@@ -24,7 +21,8 @@ import { CommunicationModule } from '../communication/communication.module';
 import { SendOTPHandler } from './application/handler/event/send-otp.handler';
 import { LoginAttemptCache } from './infrastructure/cache/login-attempt.cache';
 import { AccountLockedHandler } from './application/handler/event/account-locked.handler';
-import { OTPCache } from './infrastructure/cache/otp.cache';
+import { OTPCacheService } from './infrastructure/cache/otp.cache';
+import { OTPRepositoryImpl } from './infrastructure/database/repository/otp.repository';
 import { PasswordResetCache } from './infrastructure/cache/password-reset.cache';
 import { RequestPasswordResetUseCase } from './application/use-case/request-password-reset.use-case';
 import { ResetPasswordUseCase } from './application/use-case/reset-password.use-case';
@@ -52,21 +50,12 @@ import { Enable2FAHandler } from './application/handler/command/enable-2fa.handl
       provide: JWT_AUTH_SERVICE,
       useClass: JwtService,
     },
-    {
-      provide: LOGIN_USE_CASE,
-      useClass: LoginUseCase,
-    },
-    {
-      provide: SIGNUP_USE_CASE,
-      useClass: SignupUseCase,
-    },
-    {
-      provide: OTP_CACHE,
-      useClass: OTPCache,
-    },
+    LoginUseCase,
+    SignupUseCase,
+    OTPCacheService,
     {
       provide: OTP_REPOSITORY,
-      useClass: OTPCache,
+      useClass: OTPRepositoryImpl,
     },
     {
       provide: PASSWORD_RESET_CACHE,

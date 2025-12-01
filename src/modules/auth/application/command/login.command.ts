@@ -13,6 +13,7 @@ export class LoginCommand implements ICommand {
 export type LoginResult =
   | {
       requiresOTP: true;
+      sessionToken: string;
       message: string;
     }
   | (JwtUser & { requiresOTP?: false });

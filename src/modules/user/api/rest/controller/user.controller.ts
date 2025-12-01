@@ -39,7 +39,7 @@ export class UserController {
   async createUser(@Body() body: CreateUserBody) {
     getOrThrowWith(
       await this.commandBus.execute(
-        this.getCommandForRole(body, UserRole.USER),
+        this.getCommandForRole(body, UserRole.MANAGER),
       ),
       () => new BadRequestException('Error in User Creation'),
     );

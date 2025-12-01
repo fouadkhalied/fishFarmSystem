@@ -3,7 +3,6 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Option, some, none } from 'effect/Option';
-import { OTPRepository } from '../../domain/repository/otp.repository.interface';
 import { OTP, OTPProps } from '../../domain/entity/otp.entity';
 import { OTPCode } from '../../domain/value-object/otp-code.value-object';
 import { v4 } from 'uuid';
@@ -23,7 +22,7 @@ interface OTPRequestLog {
 }
 
 @Injectable()
-export class OTPCache implements OTPRepository {
+export class OTPCacheService {
   private readonly OTP_KEY = (userId: string) => `otp:${userId}`;
   private readonly RATE_LIMIT_KEY = (userId: string) => `otp_requests:${userId}`;
   private readonly OTP_TTL_SECONDS = 300; // 5 minutes

@@ -37,7 +37,7 @@ export class SignupUseCase implements UseCase<SignupBody, Option<AuthUser>> {
     const password = await Password.fromPlainText(body.password);
 
     // 3. Create user
-    const userRole = body.role !== undefined ? (body.role as unknown as UserRole) : UserRole.USER;
+    const userRole = body.role !== undefined ? (body.role as unknown as UserRole) : UserRole.MANAGER;
     const user = await this.userRepository.createUser({
       email: body.email!,
       password,

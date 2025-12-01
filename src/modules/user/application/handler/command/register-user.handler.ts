@@ -26,7 +26,7 @@ export class RegisterUserHandler
       email: command.email,
       phoneNumber: null,
       twoFactorEnabled: false,
-      role: UserRole.USER,
+      role: UserRole.MANAGER,
       state: UserState.ACTIVE,
     });
   }
