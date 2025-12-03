@@ -3,7 +3,7 @@ import { UserRole } from '../value-object/user-role.enum';
 import { UserState } from '../value-object/user-state.enum';
 import { CreatedUserEvent } from '../event/created-user.event';
 import { Password } from 'src/modules/user/domain/value-object/password.value-object';
-import { AccountLockedEvent } from '../../../auth/domain/event/account-locked.event';
+//import { AccountLockedEvent } from '../../../auth/domain/event/account-locked.event';
 
 export interface UserProps {
   email: string;
@@ -35,11 +35,11 @@ export class User extends AggregateRoot {
   recordFailedLogin(): void {
     this.props.state = UserState.LOCKED;
 
-    this.apply(
-      new AccountLockedEvent({
-        userId: this.id,
-        reason: 'Too many failed login attempts',
-      }),
-    );
+    // this.apply(
+    //   new AccountLockedEvent({
+    //     userId: this.id,
+    //     reason: 'Too many failed login attempts',
+    //   }),
+    // );
   }
 }

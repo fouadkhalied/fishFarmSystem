@@ -15,7 +15,10 @@ export type LoginResult =
       requiresOTP: true;
       sessionToken: string;
       message: string;
+      accountLocked: false;
     }
-  | (JwtUser & { requiresOTP?: false });
-
+  | (JwtUser & { requiresOTP?: false }) | {
+    message: string;
+    accountLocked: true;
+  };
 

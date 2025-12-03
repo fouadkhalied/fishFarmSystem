@@ -65,6 +65,13 @@ export class AuthController {
       () => new UnauthorizedException('Login Error!'),
     );
 
+    if (loginResponse.accountLocked) {
+      return {
+        message: loginResponse.message ?? 'Instructions sent. Please verify to continue.',
+        accountLocked: true
+      };
+    }
+
     if (loginResponse.requiresOTP) {
       // Get session data from cache
       const sessionData = await this.cacheManager.get(`auth_session:${loginResponse.sessionToken!}`) as AuthSession;
@@ -93,6 +100,7 @@ export class AuthController {
         requiresOTP: true,
         sessionToken: loginResponse.sessionToken!,
         message: loginResponse.message ?? 'OTP sent. Please verify to continue.',
+        accountLocked: false
       };
     }
 

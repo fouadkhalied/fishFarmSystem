@@ -29,10 +29,6 @@ import { ResetPasswordUseCase } from './application/use-case/reset-password.use-
 import { Disable2FAUseCase } from './application/use-case/disable-2fa.use-case';
 import { Enable2FAUseCase } from './application/use-case/enable-2fa.use-case';
 import { PasswordResetRequestedHandler } from './application/handler/event/password-reset-requested.handler';
-import { RequestPasswordResetHandler } from './application/handler/command/request-password-reset.handler';
-import { ResetPasswordHandler } from './application/handler/command/reset-password.handler';
-import { Disable2FAHandler } from './application/handler/command/disable-2fa.handler';
-import { Enable2FAHandler } from './application/handler/command/enable-2fa.handler';
 
 @Module({
   imports: [
@@ -71,11 +67,6 @@ import { Enable2FAHandler } from './application/handler/command/enable-2fa.handl
     ResetPasswordUseCase,
     Disable2FAUseCase,
     Enable2FAUseCase,
-    // command handlers
-    RequestPasswordResetHandler,
-    ResetPasswordHandler,
-    Disable2FAHandler,
-    Enable2FAHandler,
     // event handlers
     SendOTPHandler,
     AccountLockedHandler,

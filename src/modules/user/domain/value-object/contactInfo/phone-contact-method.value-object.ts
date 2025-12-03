@@ -10,10 +10,10 @@ export class PhoneContactMethod implements ContactMethod {
   }
   
   validate(): boolean {
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    const phoneRegex = /^\+?[0-9]\d{1,14}$/;
     return phoneRegex.test(this.value);
   }
-  
+
   mask(): string {
     return `${this.value.substring(0, 3)}***${this.value.slice(-4)}`;
   }

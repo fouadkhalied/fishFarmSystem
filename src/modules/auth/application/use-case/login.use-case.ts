@@ -15,6 +15,8 @@ import { AccountLockedEvent } from '../../domain/event/account-locked.event';
 import { UserRepository } from '../../../user/domain/repository/user.repository.interface';
 import { USER_REPOSITORY } from '../../../user/user.tokens';
 import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
+import { PasswordResetCache } from '../../infrastructure/cache/password-reset.cache';
+import { PASSWORD_RESET_CACHE } from '../../auth.tokens';
 
 @Injectable()
 export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
@@ -26,6 +28,8 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
     private readonly eventEmitter: EventEmitter2,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    @Inject(PASSWORD_RESET_CACHE)
+    private readonly passwordResetCache: PasswordResetCache,
   ) {}
 
   async execute(body: LoginBody): Promise<Option<LoginResponse>> {
@@ -72,16 +76,45 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
         
         // Save user to database (account now locked)
         await this.userRepository.lock(user.value.id);
+
+        // Generate reset token
+        const resetToken = this.generateResetToken();
+
+        // Store reset token
+        const success = await this.passwordResetCache.createPasswordReset(
+          user.value.id,
+          resetToken
+        );
+
+        if (!success) {
+          throw new BadRequestException('Failed to create password reset request');
+        }
  
-        const accountLockedEvent = new AccountLockedEvent({
+        // const accountLockedEvent = new AccountLockedEvent({
+        //   userId: user.value.id,
+        //   reason: 'Too many failed login attempts',
+        //   deliveryMethod: contactMethod.type,
+        //   recipient: contactMethod.value,
+        //   resetToken: resetToken
+        // });
+        
+        this.eventEmitter.emit(
+        'account.locked',
+        new AccountLockedEvent({ 
           userId: user.value.id,
           reason: 'Too many failed login attempts',
+          deliveryMethod: contactMethod.type,
+          recipient: contactMethod.value,
+          resetToken: resetToken
+          }
+        ))
+
+        return fromNullable({
+          requiresOTP: false,
+          sessionToken: '',
+          message: `Instructions sent to ${contactMethod.type} to change your password. Please verify to continue.`,
+          accountLocked: true
         });
-        
-        this.eventEmitter.emit('AccountLockedEvent', accountLockedEvent);
-        throw new UnauthorizedException(
-          `Account locked! please change your password`,
-        );
       }
 
       const remainingAttempts = WRONG_LOGIN_ATTEMPS - newCount;
@@ -112,6 +145,7 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
         requiresOTP: true,
         sessionToken,
         message: `OTP sent to your ${contactMethod.type}. Please verify to continue.`,
+        accountLocked: false
       });
     }
 
@@ -123,10 +157,16 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
         email: user.value.props.email,
         role: user.value.props.role,
       },
+      accountLocked: false
     });
   }
 
   private generateSessionToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private generateResetToken(): string {
+    // Generate a secure random token
     return randomBytes(32).toString('hex');
   }
 }

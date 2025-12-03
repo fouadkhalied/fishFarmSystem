@@ -76,8 +76,8 @@ export class RequestPasswordResetUseCase
       new PasswordResetRequestedEvent({
         userId: user.id,
         resetToken,
-        deliveryMethod: input.email ? 'EMAIL' : 'SMS',
-        recipient: input.email || input.phoneNumber || '',
+        deliveryMethod: contactMethod.type,
+        recipient: contactMethod.value,
       }),
     );
 

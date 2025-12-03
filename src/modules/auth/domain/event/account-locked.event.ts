@@ -4,6 +4,9 @@ import { IEvent } from '@nestjs/cqrs';
 export interface AccountLockedPayload {
   userId: string;
   reason: string;
+  deliveryMethod: string;
+  recipient: string;
+  resetToken: string
 }
 
 export class AccountLockedEvent extends DomainEvent<AccountLockedPayload> implements IEvent {
