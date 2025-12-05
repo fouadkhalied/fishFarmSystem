@@ -1,6 +1,6 @@
 import { LoginBody } from './login.body';
 import { IsNotEmpty, IsString, IsIn } from 'class-validator';
-import { ApiRole } from '../../../../../../libs/api/api-role.enum';
+import { UserRole } from 'src/modules/user/domain/value-object/user-role.enum';
 
 export class SignupBody extends LoginBody {
   @IsNotEmpty()
@@ -12,6 +12,6 @@ export class SignupBody extends LoginBody {
   lastName!: string;
 
   @IsNotEmpty()
-  @IsIn([ApiRole.ADMIN, ApiRole.ACCOUNTANT, ApiRole.TECNICAN])
-  role!: ApiRole;
+  @IsIn([UserRole.ADMIN, UserRole.ACCOUNTANT, UserRole.TECNICAN])
+  role!: UserRole;
 }

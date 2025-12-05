@@ -13,6 +13,7 @@ import { LoginUseCase } from './application/use-case/login.use-case';
 import { SignupUseCase } from './application/use-case/signup.use-case';
 import { TwoFactorController } from './api/rest/controller/two-factor.controller';
 import { RequestOTPUseCase } from './application/use-case/request-otp.use-case';
+import { DirectRequestOTPUseCase } from './application/use-case/direct-request-otp.use-case';
 import { VerifyOTPUseCase } from './application/use-case/verify-otp.use-case';
 import { AuthUserQueryService } from './application/service/auth-user-query.service';
 
@@ -29,6 +30,7 @@ import { ResetPasswordUseCase } from './application/use-case/reset-password.use-
 import { Disable2FAUseCase } from './application/use-case/disable-2fa.use-case';
 import { Enable2FAUseCase } from './application/use-case/enable-2fa.use-case';
 import { PasswordResetRequestedHandler } from './application/handler/event/password-reset-requested.handler';
+import { OTPService } from './application/service/otp.service';
 
 @Module({
   imports: [
@@ -59,9 +61,11 @@ import { PasswordResetRequestedHandler } from './application/handler/event/passw
     },
     // services
     AuthUserQueryService,
+    OTPService,
     LoginAttemptCache,
     // use-cases
     RequestOTPUseCase,
+    DirectRequestOTPUseCase,
     VerifyOTPUseCase,
     RequestPasswordResetUseCase,
     ResetPasswordUseCase,

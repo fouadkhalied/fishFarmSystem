@@ -10,19 +10,11 @@ import { LoginBody } from '../presentation/body/login.body';
 import { SignupBody } from '../presentation/body/signup.body';
 import { PublicApi, InjectAuthUser, AuthRoles } from '../../../../../libs/decorator/auth.decorator';
 import { ApiRole } from '../../../../../libs/api/api-role.enum';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { isNone, getOrThrowWith } from 'effect/Option';
+import { getOrThrowWith } from 'effect/Option';
 
-interface AuthSession {
-  userId: string;
-  recipient: ContactMethod;
-  deliveryMethod: 'EMAIL' | 'SMS';
-  expiresAt: number;
-}
+
 import { JwtAuthService } from '../../../application/service/jwt-auth-service.interface';
 import { JWT_AUTH_SERVICE } from '../../../auth.tokens';
-import { USER_REPOSITORY } from '../../../../user/user.tokens';
 import { AuthUser } from '../presentation/dto/auth-user.dto';
 import { RefreshTokenBody } from '../presentation/body/refresh-token.body';
 import { LoginUseCase } from '../../../application/use-case/login.use-case';
@@ -37,7 +29,6 @@ import { Enable2FAUseCase } from '../../../application/use-case/enable-2fa.use-c
 import { RequestPasswordResetBody } from '../presentation/body/request-password-reset.body';
 import { ResetPasswordBody } from '../presentation/body/reset-password.body';
 import { PasswordResetResponseDto } from '../presentation/dto/password-reset-response.dto';
-import { ContactMethod } from 'src/modules/user/domain/value-object/contactInfo/contact-method.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -51,10 +42,6 @@ export class AuthController {
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
     private readonly disable2FAUseCase: Disable2FAUseCase,
     private readonly enable2FAUseCase: Enable2FAUseCase,
-    @Inject(CACHE_MANAGER)
-    private readonly cacheManager: Cache,
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: any,
   ) {}
 
   @PublicApi()
@@ -73,23 +60,10 @@ export class AuthController {
     }
 
     if (loginResponse.requiresOTP) {
-      // Get session data from cache
-      const sessionData = await this.cacheManager.get(`auth_session:${loginResponse.sessionToken!}`) as AuthSession;
-      if (!sessionData) {
-        throw new UnauthorizedException('Session expired. Please login again.');
-      }
-
       // Send OTP synchronously - fail fast if it fails
       try {
-        // Get user data to determine contact method
-        const userOption = await this.userRepository.getUserById(sessionData.userId);
-        if (isNone(userOption)) {
-          throw new UnauthorizedException('User not found.');
-        }
-
         await this.requestOTPUseCase.execute({
-          recipient: sessionData.recipient,
-          deliveryMethod: sessionData.deliveryMethod,
+          sessionToken: loginResponse.sessionToken!,
           isResend: false,
         });
       } catch (otpError) {

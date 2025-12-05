@@ -27,40 +27,38 @@ export class RequestPasswordResetUseCase
   ) {}
 
   async execute(input: RequestPasswordResetInput): Promise<boolean> {
-    if (!input.email && !input.phoneNumber) {
-      throw new BadRequestException(
-        'Either email or phone number must be provided to request password reset',
-      );
-    }
-
     const contactMethod = ContactMethodFactory.fromLoginBody(input);
+    const user = await this.findUser(contactMethod);
 
-    // 2. Fetch user by email or phone number
-    const userOption = await this.authUserQueryService.findUserByContactMethod(contactMethod);
-
-    // Check user exists
-    if (isNone(userOption)) {
-      // Don't reveal if user exists for security - just return success
-      throw new BadRequestException(
-        'User does not exsist',
-      );
+    if (isNone(user)) {
+      throw new BadRequestException("User does not exsist");
     }
 
-    const user = userOption.value;
-
-    // Check account is active
-    if (user.props.state === UserState.ACTIVE) {
-      throw new BadRequestException(
-        'Account is already active',
-      );
-    }
-
-    // Generate reset token
+    this.validateUserState(user.value);
     const resetToken = this.generateResetToken();
+    await this.storeResetToken(user.value.id, resetToken, input);
+    await this.publishPasswordResetEvent(user.value.id, resetToken, contactMethod);
 
-    // Store reset token
+    return this.createSuccessResponse();
+  }
+
+  private async findUser(contactMethod: any) {
+    return await this.authUserQueryService.findUserByContactMethod(contactMethod);
+  }
+
+  private validateUserState(user: any): void {
+    if (user.props.state !== UserState.ACTIVE) {
+      throw new BadRequestException('Account is not active');
+    }
+  }
+
+  private generateResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private async storeResetToken(userId: string, resetToken: string, input: RequestPasswordResetInput): Promise<void> {
     const success = await this.passwordResetCache.createPasswordReset(
-      user.id,
+      userId,
       resetToken,
       input.email,
       input.phoneNumber,
@@ -69,23 +67,22 @@ export class RequestPasswordResetUseCase
     if (!success) {
       throw new BadRequestException('Failed to create password reset request');
     }
+  }
 
-    // Publish domain event (for async email/SMS sending)
+  private async publishPasswordResetEvent(userId: string, resetToken: string, contactMethod: any): Promise<void> {
     this.eventEmitter.emit(
       'password.reset.requested',
       new PasswordResetRequestedEvent({
-        userId: user.id,
+        userId,
         resetToken,
         deliveryMethod: contactMethod.type,
         recipient: contactMethod.value,
       }),
     );
+  }
 
+  private createSuccessResponse(): boolean {
     return true;
   }
 
-  private generateResetToken(): string {
-    // Generate a secure random token
-    return randomBytes(32).toString('hex');
-  }
 }

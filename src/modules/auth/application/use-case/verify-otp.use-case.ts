@@ -24,47 +24,55 @@ export class VerifyOTPUseCase implements UseCase<VerifyOTPInput, Option<AuthUser
   ) {}
 
   async execute(input: VerifyOTPInput): Promise<Option<AuthUser>> {
-
-    // 1. Load user from database
     const contactMethod = ContactMethodFactory.fromLoginBody(input);
+    const user = await this.findUser(contactMethod);
 
-    // 2. Fetch user by email or phone number
-    const userOption: Option<User> = await this.authUserQueryService.findUserByContactMethod(contactMethod);
-
-    // 2. Check user exists
-    if (isNone(userOption)) {
+    if (isNone(user)) {
       return none();
     }
 
-    const user = userOption.value;
+    const otp = await this.findAndValidateOTP(user.value.id);
+    await this.validateOTPCode(otp, input.otpCode);
+    await this.cleanupOTP(otp.id);
 
-    // 3. Load OTP from database
-    const otpOption = await this.otpRepository.findOTPByUserId(user.id);
+    return this.createSuccessResponse(user.value);
+  }
 
-    // 4. Check OTP exists
+  private async findUser(contactMethod: any): Promise<Option<User>> {
+    return await this.authUserQueryService.findUserByContactMethod(contactMethod);
+  }
+
+  private async findAndValidateOTP(userId: string) {
+    const otpOption = await this.otpRepository.findOTPByUserId(userId);
+
     if (isNone(otpOption)) {
       throw new UnauthorizedException('OTP not found');
     }
 
-    const otp = otpOption.value;
+    return otpOption.value;
+  }
 
-    // 5. Validate OTP
+  private async validateOTPCode(otp: any, otpCode: string): Promise<void> {
     try {
-      const isValid = await otp.validate(input.otpCode);
+      const isValid = await otp.validate(otpCode);
 
       if (!isValid) {
-        // Save failed attempt
         await this.otpRepository.updateOTP(otp);
         throw new UnauthorizedException('Invalid OTP code');
       }
+
+      // Save the invalidated state after successful validation
+      await this.otpRepository.updateOTP(otp);
     } catch (error: any) {
       throw new UnauthorizedException(error.message);
     }
+  }
 
-    // 6. Delete OTP after successful validation
-    await this.otpRepository.deleteOTP(otp.id);
+  private async cleanupOTP(otpId: string): Promise<void> {
+    await this.otpRepository.deleteOTP(otpId);
+  }
 
-    // 7. Return AuthUser
+  private createSuccessResponse(user: User): Option<AuthUser> {
     return fromNullable({
       id: user.id,
       email: user.props.email,

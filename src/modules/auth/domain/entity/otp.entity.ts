@@ -35,12 +35,14 @@ export class OTP {
     }
 
     const matches = await this.props.code.matches(submittedCode);
-    
+
     if (!matches) {
       this.props.failedAttempts++;
       return false;
     }
 
+    // Mark OTP as invalidated after successful validation
+    this.invalidate();
     return true;
   }
 

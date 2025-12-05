@@ -19,14 +19,14 @@ import {
   import { getOrThrowWith, isNone } from 'effect/Option';
   import { JwtAuthService } from '../../../application/service/jwt-auth-service.interface';
   import { JWT_AUTH_SERVICE } from '../../../auth.tokens';
-  import { RequestOTPUseCase } from '../../../application/use-case/request-otp.use-case';
-  import { VerifyOTPUseCase } from '../../../application/use-case/verify-otp.use-case';
+import { DirectRequestOTPUseCase } from '../../../application/use-case/direct-request-otp.use-case';
+import { VerifyOTPUseCase } from '../../../application/use-case/verify-otp.use-case';
 import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
 
   @Controller('2FA')
   export class TwoFactorController {
     constructor(
-      private readonly requestOTPUseCase: RequestOTPUseCase,
+      private readonly directRequestOTPUseCase: DirectRequestOTPUseCase,
       private readonly verifyOTPUseCase: VerifyOTPUseCase,
       @Inject(JWT_AUTH_SERVICE)
       private readonly jwtAuthService: JwtAuthService,
@@ -39,11 +39,11 @@ import { ContactMethodFactory } from 'src/modules/user/domain/value-object/conta
 
       const contactMethod = ContactMethodFactory.fromLoginBody(body);
 
-      const result = await this.requestOTPUseCase.execute({
+      const result = await this.directRequestOTPUseCase.execute({
         recipient: contactMethod,
-        password: body.password,
         deliveryMethod: body.deliveryMethod || 'EMAIL',
         isResend: false,
+        password: body.password,
       });
 
       if (isNone(result)) {
@@ -95,11 +95,11 @@ import { ContactMethodFactory } from 'src/modules/user/domain/value-object/conta
     async resendOTP(@Body() body: ResendOTPBody): Promise<OTPResponseDto> {
       const contactMethod = ContactMethodFactory.fromLoginBody(body);
 
-      const result = await this.requestOTPUseCase.execute({
+      const result = await this.directRequestOTPUseCase.execute({
         recipient: contactMethod,
-        password: '', // Password already validated in original request
         deliveryMethod: body.deliveryMethod || 'EMAIL',
         isResend: true,
+        password: body.password, // Password required for resend
       });
 
       if (isNone(result)) {

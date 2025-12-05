@@ -24,28 +24,39 @@ export class ResetPasswordUseCase
   ) {}
 
   async execute(input: ResetPasswordInput): Promise<boolean> {
-    // Verify reset token
-    const tokenData = await this.passwordResetCache.verifyPasswordResetToken(input.token);
+    const tokenData = await this.verifyResetToken(input.token);
+    const { userId } = tokenData.value;
+
+    await this.resetUserPassword(userId, input.newPassword);
+    await this.cleanupTokens(input.token, userId);
+
+    return this.createSuccessResponse();
+  }
+
+  private async verifyResetToken(token: string) {
+    const tokenData = await this.passwordResetCache.verifyPasswordResetToken(token);
 
     if (isNone(tokenData)) {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
 
-    const { userId } = tokenData.value;
+    return tokenData;
+  }
 
-    // Reset password
-    const result = await this.userRepository.changePassword(userId, input.newPassword);
+  private async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    const result = await this.userRepository.changePassword(userId, newPassword);
 
     if (isNone(result)) {
       throw new BadRequestException('Failed to reset password');
     }
+  }
 
-    // Invalidate the used token
-    await this.passwordResetCache.invalidateToken(input.token);
-
-    // Also invalidate any other tokens for this user
+  private async cleanupTokens(token: string, userId: string): Promise<void> {
+    await this.passwordResetCache.invalidateToken(token);
     await this.passwordResetCache.invalidateUserTokens(userId);
+  }
 
+  private createSuccessResponse(): boolean {
     return true;
   }
 }

@@ -33,129 +33,131 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
   ) {}
 
   async execute(body: LoginBody): Promise<Option<LoginResponse>> {
-    const WRONG_LOGIN_ATTEMPS: number = 3;
-    
-    // 1. Validate that either email or phone number is provided
+    this.validateLoginInput(body);
+    const contactMethod = ContactMethodFactory.fromLoginBody(body);
+
+    const user = await this.findAndValidateUser(contactMethod);
+    const isPasswordValid = await this.validatePassword(user, body.password);
+
+    if (!isPasswordValid) {
+      return await this.handleFailedLoginAttempt(user, contactMethod);
+    }
+
+    await this.handleSuccessfulLogin(user);
+
+    if (this.isTwoFactorEnabled(user)) {
+      return this.handleTwoFactorLogin(user, contactMethod);
+    }
+
+    return this.createSuccessResponse(user);
+  }
+
+  private validateLoginInput(body: LoginBody): void {
     if (!body.email && !body.phoneNumber) {
       throw new BadRequestException('Either email or phone number must be provided');
     }
+  }
 
-    const contactMethod = ContactMethodFactory.fromLoginBody(body);
-
-    // 2. Fetch user by email or phone number
+  private async findAndValidateUser(contactMethod: any) {
     const user = await this.authUserQueryService.findUserByContactMethod(contactMethod);
 
-    console.log(contactMethod.value);
-    
-
     if (isNone(user)) {
-      throw new UnauthorizedException(
-        `User not found!`,
-      );
+      throw new UnauthorizedException('User not found!');
     }
 
-    // 3. Verify user exists and is active
-    if (isNone(user) || user.value.props.state !== UserState.ACTIVE) {
-      throw new UnauthorizedException(
-        `Account locked! please change your password`,
-      );
+    if (user.value.props.state !== UserState.ACTIVE) {
+      throw new UnauthorizedException('Account locked! Please change your password');
     }
 
-    // 4. Validate password
-    const validPassword = await user.value.props.password.matches(body.password);
+    return user.value;
+  }
 
-    if (!validPassword) {
-      // 5. Increment user wrong attempts
-      const newCount = await this.loginAttemptCache.incrementAttempt(user.value.id);
-      
-      console.log(user);
-      // 6. Check if wrong attempts >= 3
-      if (newCount >= WRONG_LOGIN_ATTEMPS) {
-        // Record failed login (changes state to LOCKED and creates AccountLockedEvent)
-        user.value.recordFailedLogin();
-        
-        // Save user to database (account now locked)
-        await this.userRepository.lock(user.value.id);
+  private async validatePassword(user: any, password: string): Promise<boolean> {
+    return await user.props.password.matches(password);
+  }
 
-        // Generate reset token
-        const resetToken = this.generateResetToken();
+  private async handleFailedLoginAttempt(user: any, contactMethod: any): Promise<Option<LoginResponse>> {
+    const WRONG_LOGIN_ATTEMPS = 3;
+    const newCount = await this.loginAttemptCache.incrementAttempt(user.id);
 
-        // Store reset token
-        const success = await this.passwordResetCache.createPasswordReset(
-          user.value.id,
-          resetToken
-        );
-
-        if (!success) {
-          throw new BadRequestException('Failed to create password reset request');
-        }
- 
-        // const accountLockedEvent = new AccountLockedEvent({
-        //   userId: user.value.id,
-        //   reason: 'Too many failed login attempts',
-        //   deliveryMethod: contactMethod.type,
-        //   recipient: contactMethod.value,
-        //   resetToken: resetToken
-        // });
-        
-        this.eventEmitter.emit(
-        'account.locked',
-        new AccountLockedEvent({ 
-          userId: user.value.id,
-          reason: 'Too many failed login attempts',
-          deliveryMethod: contactMethod.type,
-          recipient: contactMethod.value,
-          resetToken: resetToken
-          }
-        ))
-
-        return fromNullable({
-          requiresOTP: false,
-          sessionToken: '',
-          message: `Instructions sent to ${contactMethod.type} to change your password. Please verify to continue.`,
-          accountLocked: true
-        });
-      }
-
-      const remainingAttempts = WRONG_LOGIN_ATTEMPS - newCount;
-      throw new UnauthorizedException(
-        `Invalid Credentials! Attempts remaining: ${remainingAttempts}`,
-      );
+    if (newCount >= WRONG_LOGIN_ATTEMPS) {
+      return await this.lockUserAccount(user, contactMethod);
     }
 
-    // 7. Password is correct - delete user wrong attempts
-    await this.loginAttemptCache.deleteAttempts(user.value.id);
+    const remainingAttempts = WRONG_LOGIN_ATTEMPS - newCount;
+    throw new UnauthorizedException(`Invalid Credentials! Attempts remaining: ${remainingAttempts}`);
+  }
 
-    // 8. Check if 2FA is enabled
-    const twoFactorEnabled = user.value.props.twoFactorEnabled ?? false;
+  private async lockUserAccount(user: any, contactMethod: any): Promise<Option<LoginResponse>> {
+    user.recordFailedLogin();
+    await this.userRepository.lock(user.id);
 
-    if (twoFactorEnabled) {
-      // 9. Create a pending auth session instead of exposing user data
-      const sessionToken = this.generateSessionToken();
+    // Generate reset token
+    const resetToken = this.generateResetToken();
 
-      // Store session temporarily 
-      await this.cacheManager.set(`auth_session:${sessionToken}`, {
-        userId: user.value.id,
+    // Store reset token
+    const success = await this.passwordResetCache.createPasswordReset(
+      user.id,
+      resetToken
+    );
+
+    if (!success) {
+      throw new BadRequestException('Failed to create password reset request');
+    }
+
+    this.eventEmitter.emit(
+      'account.locked',
+      new AccountLockedEvent({
+        userId: user.id,
+        reason: 'Too many failed login attempts',
         deliveryMethod: contactMethod.type,
-        recipient: contactMethod,
-        expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-      }, 300); // 5 minutes TTL
+        recipient: contactMethod.value,
+        resetToken: resetToken
+      })
+    );
 
-      return fromNullable({
-        requiresOTP: true,
-        sessionToken,
-        message: `OTP sent to your ${contactMethod.type}. Please verify to continue.`,
-        accountLocked: false
-      });
-    }
+    return fromNullable({
+      requiresOTP: false,
+      sessionToken: '',
+      message: `Instructions sent to ${contactMethod.type} to change your password. Please verify to continue.`,
+      accountLocked: true
+    });
+  }
 
-    // 10. Return authenticated user if 2FA is not enabled
+  private async handleSuccessfulLogin(user: any): Promise<void> {
+    await this.loginAttemptCache.deleteAttempts(user.id);
+  }
+
+  private isTwoFactorEnabled(user: any): boolean {
+    return user.props.twoFactorEnabled ?? false;
+  }
+
+  private handleTwoFactorLogin(user: any, contactMethod: any): Option<LoginResponse> {
+    const sessionToken = this.generateSessionToken();
+
+    // Store session temporarily
+    this.cacheManager.set(`auth_session:${sessionToken}`, {
+      userId: user.id,
+      deliveryMethod: contactMethod.type,
+      recipient: contactMethod,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    }, 300); // 5 minutes TTL
+
+    return fromNullable({
+      requiresOTP: true,
+      sessionToken,
+      message: `OTP sent to your ${contactMethod.type}. Please verify to continue.`,
+      accountLocked: false
+    });
+  }
+
+  private createSuccessResponse(user: any): Option<LoginResponse> {
     return fromNullable({
       requiresOTP: false,
       user: {
-        id: user.value.id,
-        email: user.value.props.email,
-        role: user.value.props.role,
+        id: user.id,
+        email: user.props.email,
+        role: user.props.role,
       },
       accountLocked: false
     });
@@ -166,7 +168,6 @@ export class LoginUseCase implements UseCase<LoginBody, Option<LoginResponse>> {
   }
 
   private generateResetToken(): string {
-    // Generate a secure random token
     return randomBytes(32).toString('hex');
   }
 }

@@ -196,6 +196,8 @@ export class UserRepositoryImpl implements UserRepository {
 
     entity.updatedAt = new Date();
 
+    
+
     try {
       await this.mikroOrmRepository.getEntityManager().flush();
     } catch (error) {
@@ -205,19 +207,85 @@ export class UserRepositoryImpl implements UserRepository {
 
     const domainUser = this.mapper.toDomain(entity);
 
-    // Invalidate old cache keys and cache new data
+    // Invalidate old cache keys
     await this.userCache.invalidateUser(userId, oldEmail, oldPhoneNumber || undefined);
+
+    // If email or phone number changed, also invalidate new cache keys to ensure clean state
+    if (updates.email && updates.email !== oldEmail) {
+      await this.userCache.invalidateUser(userId, updates.email, oldPhoneNumber || undefined);
+    }
+    if (updates.phoneNumber !== undefined && updates.phoneNumber !== oldPhoneNumber) {
+      await this.userCache.invalidateUser(userId, oldEmail, updates.phoneNumber || undefined);
+      // Also invalidate new email + new phone combination if both changed
+      if (updates.email && updates.email !== oldEmail) {
+        await this.userCache.invalidateUser(userId, updates.email, updates.phoneNumber || undefined);
+      }
+    }
+
+    // Cache new user data
     await this.userCache.setUser(domainUser);
 
     return some(domainUser);
   }
 
-  async disable2FA(userId: string): Promise<Option<User>> {
-    return this.updateUser(userId, { twoFactorEnabled: false });
+  async enable2FA(userId: string): Promise<Option<User>> {
+    const entity = await this.mikroOrmRepository.findOne({ id: userId });
+
+    if (!entity) {
+      return fromNullable(null);
+    }
+
+    // Check if already enabled
+    if (entity.twoFactorEnabled) {
+      return some(this.mapper.toDomain(entity));
+    }
+
+    entity.twoFactorEnabled = true;
+    entity.updatedAt = new Date();
+
+    try {
+      await this.mikroOrmRepository.getEntityManager().flush();
+    } catch (error) {
+      console.error('Error enabling 2FA:', error);
+      return fromNullable(null);
+    }
+
+    const domainUser = this.mapper.toDomain(entity);
+
+    // Invalidate cache for this user
+    await this.userCache.invalidateUser(userId, entity.email, entity.phoneNumber || undefined);
+
+    return some(domainUser);
   }
 
-  async enable2FA(userId: string): Promise<Option<User>> {
-    return this.updateUser(userId, { twoFactorEnabled: true });
+  async disable2FA(userId: string): Promise<Option<User>> {
+    const entity = await this.mikroOrmRepository.findOne({ id: userId });
+
+    if (!entity) {
+      return fromNullable(null);
+    }
+
+    // Check if already disabled
+    if (!entity.twoFactorEnabled) {
+      return some(this.mapper.toDomain(entity));
+    }
+
+    entity.twoFactorEnabled = false;
+    entity.updatedAt = new Date();
+
+    try {
+      await this.mikroOrmRepository.getEntityManager().flush();
+    } catch (error) {
+      console.error('Error disabling 2FA:', error);
+      return fromNullable(null);
+    }
+
+    const domainUser = this.mapper.toDomain(entity);
+
+    // Invalidate cache for this user
+    await this.userCache.invalidateUser(userId, entity.email, entity.phoneNumber || undefined);
+
+    return some(domainUser);
   }
 
   async getAllUsers(params?: UserParams): Promise<Collection<User>> {

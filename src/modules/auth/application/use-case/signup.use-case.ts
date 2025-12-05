@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../libs/ddd/use-case.interface';
-import { isSome, isNone, none, map, Option } from 'effect/Option';
+import { isSome, isNone, some, none, map, Option } from 'effect/Option';
 import { Injectable, Inject } from '@nestjs/common';
 import { AuthUser } from '../../api/rest/presentation/dto/auth-user.dto';
 import { SignupBody } from '../../api/rest/presentation/body/signup.body';
@@ -9,7 +9,6 @@ import { AuthUserQueryService } from '../service/auth-user-query.service';
 import { UserRepository } from '../../../user/domain/repository/user.repository.interface';
 import { USER_REPOSITORY } from '../../../user/user.tokens';
 import { Password } from '../../../user/domain/value-object/password.value-object';
-import { UserRole } from '../../../user/domain/value-object/user-role.enum';
 import { UserState } from '../../../user/domain/value-object/user-state.enum';
 import { EventPublisher } from '@nestjs/cqrs';
 import { ContactMethodFactory } from 'src/modules/user/domain/value-object/contactInfo/contact-method.factory';
@@ -24,42 +23,53 @@ export class SignupUseCase implements UseCase<SignupBody, Option<AuthUser>> {
   ) {}
 
   async execute(body: SignupBody): Promise<Option<AuthUser>> {
-    // 1. Check if user already exists
-    const contactMethod = ContactMethodFactory.fromLoginBody(body);
-
-    // 2. Fetch user by email or phone number
-    const found = await this.authUserQueryService.findUserByContactMethod(contactMethod);
-    
-    if (isSome(found)) {
-      throw new CustomConflictException(found.value.props.email);
-    }
-
-    // 2. Create password hash
-    const password = await Password.fromPlainText(body.password);
-
-    // 3. Create user
-    const userRole = body.role !== undefined ? (body.role as unknown as UserRole) : UserRole.MANAGER;
-    const user = await this.userRepository.createUser({
-      email: body.email!,
-      password,
-      phoneNumber: body.phoneNumber || null,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      role: userRole,
-      state: UserState.ACTIVE,
-      twoFactorEnabled: false,
-    });
+    await this.validateUserDoesNotExist(body);
+    const password = await this.hashPassword(body.password);
+    const user = await this.createUser(body, password);
 
     if (isNone(user)) {
       return none();
     }
 
-    // 4. Merge event context and commit domain events
-    this.eventPublisher.mergeObjectContext(user.value);
-    user.value.commit();
+    await this.publishUserCreatedEvent(user.value);
+    return this.createSuccessResponse(user.value);
+  }
 
-    // 5. Return AuthUser
-    return map(user, (u: User) => ({
+  private async validateUserDoesNotExist(body: SignupBody): Promise<void> {
+    const contactMethod = ContactMethodFactory.fromLoginBody(body);
+    const existingUser = await this.authUserQueryService.findUserByContactMethod(contactMethod);
+
+    if (isSome(existingUser)) {
+      throw new CustomConflictException(existingUser.value.props.email);
+    }
+  }
+
+  private async hashPassword(password: string): Promise<Password> {
+    return await Password.fromPlainText(password);
+  }
+
+  private async createUser(body: SignupBody, password: Password): Promise<Option<User>> {
+    //const userRole = body.role !== undefined ? (body.role as unknown as UserRole) : UserRole.MANAGER;
+
+    return await this.userRepository.createUser({
+      email: body.email!,
+      password,
+      phoneNumber: body.phoneNumber || null,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      role: body.role,
+      state: UserState.ACTIVE,
+      twoFactorEnabled: false,
+    });
+  }
+
+  private async publishUserCreatedEvent(user: User): Promise<void> {
+    this.eventPublisher.mergeObjectContext(user);
+    user.commit();
+  }
+
+  private createSuccessResponse(user: User): Option<AuthUser> {
+    return map(some(user), (u: User) => ({
       id: u.id,
       email: u.props.email,
       role: u.props.role,
