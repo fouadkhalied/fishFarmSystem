@@ -8,14 +8,13 @@ import { FastifyRequest } from 'fastify';
 import { Reflector } from '@nestjs/core';
 import { JWT_AUTH_SERVICE } from '../../auth.tokens';
 import { isNone, none, Option, some } from 'effect/Option';
-import { QueryBus } from '@nestjs/cqrs';
-import { CheckAuthUserByIdQuery } from '../../application/query/check-auth-user-by-id.query';
 import {
   AUTH_ROLES_KEY,
   IS_PUBLIC_API,
 } from '../../../../libs/decorator/auth.decorator';
 import { ApiRole } from '../../../../libs/api/api-role.enum';
 import { JwtAuthService } from '../../application/service/jwt-auth-service.interface';
+import { AuthUserQueryService } from '../../application/service/auth-user-query.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -25,8 +24,8 @@ export class AuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     @Inject(JWT_AUTH_SERVICE)
     private readonly jwtService: JwtAuthService,
-    private readonly queryBus: QueryBus,
-  ) {}
+    private readonly authUserQueryService: AuthUserQueryService,
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const apiRoles = this.reflector.getAllAndOverride<ApiRole[]>(
@@ -41,7 +40,7 @@ export class AuthGuard implements CanActivate {
 
     let request: FastifyRequest;
     request = context.switchToHttp().getRequest<FastifyRequest>();
-    
+
     const token = this.extractToken(request);
     if (isNone(token)) return false;
     try {
@@ -71,6 +70,6 @@ export class AuthGuard implements CanActivate {
   }
 
   private async isActiveUser(userId: string): Promise<boolean> {
-    return await this.queryBus.execute(new CheckAuthUserByIdQuery(userId));
+    return await this.authUserQueryService.checkActiveUserById(userId);
   }
 }

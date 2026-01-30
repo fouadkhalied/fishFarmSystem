@@ -34,4 +34,6 @@ export class UserEntity extends BaseEntity {
 
   @Enum({ items: () => UserState })
   state!: UserState;
+
+  // access levels   [ modules ]
 }

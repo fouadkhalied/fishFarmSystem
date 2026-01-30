@@ -2,9 +2,6 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { UserRepositoryImpl } from './infrastructure/database/repository/user.repository';
 import { CREATE_USER_USE_CASE, USER_REPOSITORY } from './user.tokens';
-import { GetAuthUserByEmailHandler } from './application/handler/query/get-auth-user-by-email.handler';
-import { CheckAuthUserByIdHandler } from './application/handler/query/check-auth-user-by-id.handler';
-import { RegisterUserHandler } from './application/handler/command/register-user.handler';
 import { UserController } from './api/rest/controller/user.controller';
 import { CreateUserUseCase } from './application/use-case/create-user.use-case';
 import { CreateUserHandler } from './application/handler/command/create-user.handler';
@@ -18,12 +15,9 @@ import { UserCache } from './infrastructure/cache/user.cache';
   imports: [MikroOrmModule.forFeature([UserEntity])],
   controllers: [UserController],
   providers: [
-    RegisterUserHandler,
     CreateUserHandler,
     GetAllUsersHandler,
-    GetAuthUserByEmailHandler,
     GetUserByIdHandler,
-    CheckAuthUserByIdHandler,
     UserMapper,
     UserCache,
     {
@@ -37,4 +31,4 @@ import { UserCache } from './infrastructure/cache/user.cache';
   ],
   exports: [USER_REPOSITORY],
 })
-export class UserModule {}
+export class UserModule { }

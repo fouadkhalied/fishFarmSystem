@@ -15,7 +15,7 @@ export class AuthUserQueryService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
-  ) {}
+  ) { }
 
   async findUserByContactMethod(
     input: ContactMethod,
@@ -28,6 +28,10 @@ export class AuthUserQueryService {
 
     // This should not happen if validation is done before calling this method
     throw new Error('Either email or phone number must be provided');
+  }
+
+  async checkActiveUserById(userId: string): Promise<boolean> {
+    return await this.userRepository.checkActiveUserById(userId);
   }
 }
 

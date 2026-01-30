@@ -21,7 +21,7 @@ import { LoginUseCase } from '../../../application/use-case/login.use-case';
 import { LoginResponse } from '../presentation/dto/login-response.dto';
 import { SignupUseCase } from '../../../application/use-case/signup.use-case';
 import { RequestOTPUseCase } from '../../../application/use-case/request-otp.use-case';
-import { LoginResult } from '../../../application/command/login.command';
+import { LoginResult } from '../presentation/dto/login-result.dto';
 import { RequestPasswordResetUseCase } from '../../../application/use-case/request-password-reset.use-case';
 import { ResetPasswordUseCase } from '../../../application/use-case/reset-password.use-case';
 import { Disable2FAUseCase } from '../../../application/use-case/disable-2fa.use-case';
@@ -42,7 +42,7 @@ export class AuthController {
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
     private readonly disable2FAUseCase: Disable2FAUseCase,
     private readonly enable2FAUseCase: Enable2FAUseCase,
-  ) {}
+  ) { }
 
   @PublicApi()
   @Post('/login')
