@@ -1,0 +1,13 @@
+enum TankStatus {
+  ACTIVE = 'ACTIVE',
+  MAINTENANCE = 'MAINTENANCE',
+  EMPTY = 'EMPTY',
+  INACTIVE = 'INACTIVE',
+}
+
+enum BatchStatus {
+  ACTIVE = 'ACTIVE',
+  HARVESTED = 'HARVESTED',
+  MOVED = 'MOVED',
+  LOST = 'LOST',
+}
